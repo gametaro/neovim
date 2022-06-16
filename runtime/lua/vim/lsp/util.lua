@@ -85,7 +85,9 @@ local function get_border_size(opts)
 end
 
 ---@private
-local function split_lines(value)
+function M._split_lines(value)
+  -- Normalize line ending
+  value = string.gsub(value, '\r\n?', '\n')
   return split(value, '\n', true)
 end
 
@@ -426,16 +428,13 @@ function M.apply_text_edits(text_edits, bufnr, offset_encoding)
   local is_cursor_fixed = false
   local has_eol_text_edit = false
   for _, text_edit in ipairs(text_edits) do
-    -- Normalize line ending
-    text_edit.newText, _ = string.gsub(text_edit.newText, '\r\n?', '\n')
-
     -- Convert from LSP style ranges to Neovim style ranges.
     local e = {
       start_row = text_edit.range.start.line,
       start_col = get_line_byte_from_position(bufnr, text_edit.range.start, offset_encoding),
       end_row = text_edit.range['end'].line,
       end_col = get_line_byte_from_position(bufnr, text_edit.range['end'], offset_encoding),
-      text = vim.split(text_edit.newText, '\n', true),
+      text = M._split_lines(text_edit.newText),
     }
 
     -- Some LSP servers may return +1 range of the buffer content but nvim_buf_set_text can't accept it so we should fix it here.
@@ -808,7 +807,7 @@ function M.convert_input_to_markdown_lines(input, contents)
   contents = contents or {}
   -- MarkedString variation 1
   if type(input) == 'string' then
-    list_extend(contents, split_lines(input))
+    list_extend(contents, M._split_lines(input))
   else
     assert(type(input) == 'table', 'Expected a table for Hover.contents')
     -- MarkupContent
@@ -826,13 +825,13 @@ function M.convert_input_to_markdown_lines(input, contents)
       end
 
       -- assert(type(value) == 'string')
-      list_extend(contents, split_lines(value))
+      list_extend(contents, M._split_lines(value))
       -- MarkupString variation 2
     elseif input.language then
       -- Some servers send input.value as empty, so let's ignore this :(
       -- assert(type(input.value) == 'string')
       table.insert(contents, '```' .. input.language)
-      list_extend(contents, split_lines(input.value or ''))
+      list_extend(contents, M._split_lines(input.value or ''))
       table.insert(contents, '```')
       -- By deduction, this must be MarkedString[]
     else

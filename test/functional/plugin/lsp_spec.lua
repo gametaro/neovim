@@ -2485,6 +2485,12 @@ describe('LSP', function()
     end)
   end)
 
+  describe('lsp.util._split_lines', function()
+    it('with \r\n, \r and \n', function()
+      eq({'line1', 'line2', 'line3', ''}, exec_lua([[ return vim.lsp.util._split_lines('line1\r\nline2\rline3\n') ]]))
+    end)
+  end)
+
   describe('lsp.util.convert_signature_help_to_markdown_lines', function()
     it('can handle negative activeSignature', function()
       local result = exec_lua[[
